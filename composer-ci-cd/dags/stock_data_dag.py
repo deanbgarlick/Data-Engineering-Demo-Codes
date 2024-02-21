@@ -36,8 +36,8 @@ def get_data():
 
     # API call to download data from yahoo finance
     data = yf.download(tickers=tickers, start=start, end=end, interval='1d',)['Adj Close']
-    
-    # Convert the data to CSV and encode 
+
+    # Convert the data to CSV and encode
     data = data.to_csv(index=True).encode()
 
     # Create a storage client
@@ -55,28 +55,28 @@ def get_data():
     # Upload the data to the selected bucket
     blob = bucket.blob('stock_data.csv')
     blob.upload_from_string(data)
-    print(f"data sucessfully uploadesd to {bucket}")
+    print(f"Data sucessfully uploadesd to {bucket}")
 
 
 with DAG('Stock_data',
-         start_date=days_ago(1), 
+         start_date=days_ago(1),
          schedule_interval="@once",
-         catchup=False, 
-         default_args=default_args, 
+         catchup=False,
+         default_args=default_args,
          tags=["gcs", "bq"]
 ) as dag:
 
     generate_uuid = PythonOperator(
-            task_id="generate_uuid", 
+            task_id="generate_uuid",
             python_callable=lambda: "the_demo_" + str(uuid.uuid4()),
-            
+
         )
 
     create_bucket = GCSCreateBucketOperator(
             task_id="create_bucket",
             bucket_name="{{ task_instance.xcom_pull('generate_uuid') }}",
             project_id=PROJECT_ID,
-            
+
         )
 
     pull_stock_data_to_gcs = PythonOperator(
@@ -101,7 +101,7 @@ with DAG('Stock_data',
         {'name': 'MSFT', 'type': 'FLOAT64', 'mode': 'NULLABLE'},
             ],
         )
-    
+
     delete_bucket = GCSDeleteBucketOperator(
             task_id="delete_bucket",
             bucket_name="{{ task_instance.xcom_pull('generate_uuid') }}",
